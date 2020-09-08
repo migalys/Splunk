@@ -1,0 +1,169 @@
+ <dashboard>
+  <label>Network Overview</label>
+  <row>
+    <panel>
+      <single>
+        <title>Threat Activity</title>
+        <search>
+          <query>source="C:\\Program Files (x86)\\Syslogd\\Logs\\*" (1493 OR 2152 OR 4002 OR 4004 OR 6009 OR 6901 OR 6902 OR 6903 OR 6910 OR 6920 OR 2004 OR 3040 OR 3041 OR 3043 OR 3050) | stats count As "Total Count"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x555","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.size">small</option>
+        <option name="trellis.splitBy">_aggregation</option>
+        <option name="useColors">1</option>
+        <option name="useThousandSeparators">0</option>
+      </single>
+    </panel>
+    <panel>
+      <table>
+        <title>Detected Threats</title>
+        <search>
+          <query>source="C:\\Program Files (x86)\\Syslogd\\Logs\\*" (1493 OR 2152 OR 4002 OR 4004 OR 6009 OR 6901 OR 6902 OR 6903 OR 6910 OR 6920 OR 2004 OR 3040 OR 3041 OR 3043 OR 3050) | rex "Sig:(?&lt;signature&gt;.\d+).+Sev:(?&lt;severity&gt;\d+).+RiskRating:(?&lt;risk&gt;\d+)" | eval Description=case(signature=2004, "ECHO request", signature=1493, "DDos Attack", signature=2152, "ICMP Flood", signature=4002, "UDP Flood", signature=4004, "DNS Flood Attack", signature=6009, "SUN Flood Dos", signature=6901, "Net Flood ICMP Reply", signature=6902, "Net Flood ICMP Request", signature=6903, "Net Flood ICMP Any", signature=6910, "Net Flood UDP", signature=6920, "Net Flodd TCP", signature=3040, "TCP Null Packet", signature=3041, "TCP SYN/FIN Packet", signature=3043, "Fragmented SYN/FIN Packe", signature=3050, "Half-Open SYN Packet")  |  stats count(risk) As Total by  signature Description  risk | sort -risk -Total</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="number" field="signature">
+          <option name="precision">0</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="number" field="risk">
+          <option name="precision">0</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="number" field="Total">
+          <option name="precision">0</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="color" field="risk">
+          <colorPalette type="list">[#53A051,#006D9C,#F8BE34,#F1813F,#DC4E41]</colorPalette>
+          <scale type="threshold">0,30,70,100</scale>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <chart>
+        <title>Errors Trend</title>
+        <search>
+          <query>(source="WinEventLog:*" OR source="C:\\Program Files (x86)\\Syslogd\\Logs\\*") (fail* OR error*) (Source_Network_Address!="-") | timechart span=1h count by Source_Network_Address | sort - _time  limit=10</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>30m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.chart">area</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <single>
+        <title>Failed Logings</title>
+        <search>
+          <query>source="WinEventLog:*" (EventCode=4625 OR EventCode=4771) | stats count As "Total Count"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>30m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x555","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+        <option name="useThousandSeparators">0</option>
+      </single>
+    </panel>
+    <panel>
+      <table>
+        <title>Failed Loging By Users</title>
+        <search>
+          <query>source="WinEventLog:*" (EventCode=4625 OR EventCode=4771)
+ |fillnull value=NULL
+ | eval Account_Name = mvindex(Account_Name,1)
+ | eval Security_ID = mvindex(Security_ID,1)
+ | eval LoginType=case(Logon_Type=3,"RPC (not RDP)",Logon_Type=4,"Batch",Logon_Type=5,"Service",Logon_Type=7,"Screen Unlock/Session Resume",Logon_Type=10,"Remote Desktop",Logon_Type=11,"Cached",Logon_Type=9,"New Credentials")
+ |stats count(Security_ID) as "Login Events" by Security_ID, Account_Name, LoginType,host,_time  |sort + Security_ID</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>30m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">true</option>
+        <option name="wrap">false</option>
+        <format type="color" field="Source_Network_Address">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <chart>
+        <title>Logon Events Last 24 hours</title>
+        <search>
+          <query>source="WinEventLog:*" | eval "Logon Type"=case(EventCode=4624, "Successful", (EventCode=4625 OR EventCode=4771), "Failed", EventCode =4648, "Attempted") | stats count As "Number of occurrences" by "Logon Type" | sort -"Number of occurrences"</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+          <refresh>30m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Requests</title>
+        <search>
+          <query>source="C:\\Program Files (x86)\\Syslogd\\Logs\\*" | rex "\[(?&lt;ip&gt;\d+\.\d+\.\d+\.\d+)" | timechart count by ip</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">all</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">1</option>
+        <option name="charting.legend.mode">seriesCompare</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</dashboard>
